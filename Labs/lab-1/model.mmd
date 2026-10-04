@@ -1,11 +1,11 @@
-%% Початкова версія ER-моделі.
+%% ER-модель прокату туристичного спорядження.
 erDiagram
     Customer ||..o{ Rental : "бронює"
     PickupPoint ||..o{ Rental : "видає"
     EquipmentType ||..o{ EquipmentItem : "описує"
     Rental ||..|{ RentalLine : "містить"
     EquipmentItem ||..o{ RentalLine : "орендується"
-    EquipmentType }o..o{ Tag : "має теги"
+    EquipmentType }o..|{ Tag : "має теги"
 
     Customer {
         UUID id PK
@@ -28,7 +28,7 @@ erDiagram
         UUID id PK
         UUID equipment_type_id FK
         string inventory_code UK
-        string condition
+        string status
     }
     Tag {
         UUID id PK
@@ -41,11 +41,10 @@ erDiagram
         timestamp starts_at
         timestamp due_at
         string status
-        string customer_email
     }
     RentalLine {
         UUID id PK
-        integer rental_id FK
+        UUID rental_id FK "пара з equipment_item_id не повторюється"
         UUID equipment_item_id FK
         decimal daily_rate_at_booking
         timestamp returned_at "nullable"
