@@ -1,0 +1,20 @@
+.work/
+node_modules/
+__pycache__/
+*.pyc
+*.log
+Thumbs.db
+.DS_Store
+~$*.docx
+
+# Локальні матеріали перевірки та проміжні версії
+/DEFENSE.md
+/Labs/lab-1/AUDIT.md
+/Labs/lab-1/VERIFICATION.md
+/Labs/lab-1/REFERENCE_REVIEW.md
+/Labs/lab-1/GIT_PLAN.md
+/Labs/lab-1/diagram.svg
+/Labs/lab-1/*.json
+/Labs/lab-1/tools/
+/Labs/lab-1/ai/*
+!/Labs/lab-1/ai/prompts.md
