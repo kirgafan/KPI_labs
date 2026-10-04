@@ -1,0 +1,52 @@
+%% Початкова версія ER-моделі.
+erDiagram
+    Customer ||..o{ Rental : "бронює"
+    PickupPoint ||..o{ Rental : "видає"
+    EquipmentType ||..o{ EquipmentItem : "описує"
+    Rental ||..|{ RentalLine : "містить"
+    EquipmentItem ||..o{ RentalLine : "орендується"
+    EquipmentType }o..o{ Tag : "має теги"
+
+    Customer {
+        UUID id PK
+        string full_name
+        string email UK
+        string phone
+    }
+    PickupPoint {
+        UUID id PK
+        string name
+        string address
+    }
+    EquipmentType {
+        UUID id PK
+        string name
+        string description
+        decimal daily_rate
+    }
+    EquipmentItem {
+        UUID id PK
+        UUID equipment_type_id FK
+        string inventory_code UK
+        string condition
+    }
+    Tag {
+        UUID id PK
+        string name UK
+    }
+    Rental {
+        UUID id PK
+        UUID customer_id FK
+        UUID pickup_point_id FK
+        timestamp starts_at
+        timestamp due_at
+        string status
+        string customer_email
+    }
+    RentalLine {
+        UUID id PK
+        integer rental_id FK
+        UUID equipment_item_id FK
+        decimal daily_rate_at_booking
+        timestamp returned_at "nullable"
+    }
