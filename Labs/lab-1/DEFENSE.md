@@ -26,4 +26,4 @@
 
 ## Здача
 
-[ER-модель](model.mmd), [діаграма](diagram.png). Посилання на GitHub PR буде додано після публікації.
+[ER-модель](model.mmd), [діаграма](diagram.png) та [GitHub PR](https://github.com/kirgafan/KPI_labs/pull/1).
