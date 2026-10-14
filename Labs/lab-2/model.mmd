@@ -1,23 +1,52 @@
+%%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 32, "htmlLabels": true}}}%%
 flowchart TB
-    subgraph boundary ["Прокат Споряджай"]
-        direction TB
+    subgraph visitors ["Відвідувачі"]
+        direction LR
         Customer["Customer<br/>(клієнт)"]
         Guest["Guest<br/>(гість)"]
-        PickupClerk["PickupClerk<br/>(працівник пункту)"]
-        WorkshopService["WorkshopService<br/>(майстерня)"]
-        UC01(["UC-01: Переглянути каталог"])
-        UC02(["UC-02: Оформити оренду"])
-        UC03(["UC-03: Перевірити доступність"])
-        UC04(["UC-04: Звузити каталог за тегом"])
-        UC05(["UC-05: Видати спорядження"])
-        UC06(["UC-06: Повернути предмет"])
+    end
+
+    subgraph columns ["Прокат Споряджай"]
+        direction LR
+        subgraph leftColumn [" "]
+            direction TB
+            subgraph issue ["Видача і повернення"]
+                direction TB
+                UC02(["UC-02: Оформити оренду"])
+                UC03(["UC-03: Перевірити доступність предмета"])
+                UC05(["UC-05: Видати спорядження"])
+                UC07(["UC-07: Закрити оренду"])
+                UC06(["UC-06: Повернути один предмет"])
+            end
+            subgraph staff ["Працівник пункту"]
+                PickupClerk["PickupClerk<br/>(працівник пункту)"]
+            end
+        end
+        subgraph rightColumn [" "]
+            direction TB
+            subgraph catalog ["Каталог"]
+                direction TB
+                UC08(["UC-08: Переглянути свою оренду"])
+                UC04(["UC-04: Звузити каталог за тегом"])
+                UC01(["UC-01: Переглянути каталог за назвою типу"])
+                UC09(["UC-09: Передати предмет у майстерню"])
+            end
+        end
+    end
+
+    subgraph external ["Зовнішня система"]
+        WorkshopService["WorkshopService<br/>(зовнішня система)"]
     end
 
     Customer -- "узагальнення (is-a)" --> Guest
-    Customer --- UC02
     Guest --- UC01
-    PickupClerk --- UC05
-    PickupClerk --- UC06
-    UC02 -. "«include»" .-> UC03
+    Customer --- UC02
+    Customer --- UC08
+    UC05 --- PickupClerk
+    UC06 --- PickupClerk
+    UC09 --- PickupClerk
+    UC09 --- WorkshopService
+
     UC04 -. "«extend»<br/>[обрано тег]" .-> UC01
-    UC06 --- WorkshopService
+    UC02 -. "«include»" .-> UC03
+    UC07 -. "«extend»<br/>[усі позиції повернені]" .-> UC06
