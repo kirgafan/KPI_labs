@@ -1,4 +1,4 @@
-%%{init: {"flowchart": {"nodeSpacing": 24, "rankSpacing": 32, "htmlLabels": true}}}%%
+%%{init: {"theme": "dark", "themeVariables": {"darkMode": true, "background": "#0b1220", "primaryColor": "#1f2020", "primaryTextColor": "#ffffff", "primaryBorderColor": "#6e6e6e", "lineColor": "#d0d0d0", "secondaryColor": "#2c2d2d", "tertiaryColor": "#1f2020", "clusterBkg": "#0b1220", "clusterBorder": "#6e6e6e", "titleColor": "#ffffff", "edgeLabelBackground": "#1f2020", "nodeTextColor": "#ffffff"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 40, "htmlLabels": true, "curve": "basis"}}}%%
 flowchart TB
     subgraph visitors ["Відвідувачі"]
         direction LR
@@ -6,32 +6,19 @@ flowchart TB
         Guest["Guest<br/>(гість)"]
     end
 
-    subgraph columns ["Прокат Споряджай"]
-        direction LR
-        subgraph leftColumn [" "]
-            direction TB
-            subgraph issue ["Видача і повернення"]
-                direction TB
-                UC02(["UC-02: Оформити оренду"])
-                UC03(["UC-03: Перевірити доступність предмета"])
-                UC05(["UC-05: Видати спорядження"])
-                UC07(["UC-07: Закрити оренду"])
-                UC06(["UC-06: Повернути один предмет"])
-            end
-            subgraph staff ["Працівник пункту"]
-                PickupClerk["PickupClerk<br/>(працівник пункту)"]
-            end
-        end
-        subgraph rightColumn [" "]
-            direction TB
-            subgraph catalog ["Каталог"]
-                direction TB
-                UC08(["UC-08: Переглянути свою оренду"])
-                UC04(["UC-04: Звузити каталог за тегом"])
-                UC01(["UC-01: Переглянути каталог за назвою типу"])
-                UC09(["UC-09: Передати предмет у майстерню"])
-            end
-        end
+    PickupClerk["PickupClerk<br/>(працівник пункту)"]
+
+    subgraph boundary ["Прокат Споряджай"]
+        direction TB
+        UC01(["UC-01: Переглянути каталог за назвою типу"])
+        UC04(["UC-04: Звузити каталог за тегом"])
+        UC02(["UC-02: Оформити оренду"])
+        UC03(["UC-03: Перевірити доступність предмета"])
+        UC08(["UC-08: Переглянути свою оренду"])
+        UC05(["UC-05: Видати спорядження"])
+        UC06(["UC-06: Повернути один предмет"])
+        UC07(["UC-07: Закрити оренду"])
+        UC09(["UC-09: Передати предмет у майстерню"])
     end
 
     subgraph external ["Зовнішня система"]
@@ -42,9 +29,9 @@ flowchart TB
     Guest --- UC01
     Customer --- UC02
     Customer --- UC08
-    UC05 --- PickupClerk
-    UC06 --- PickupClerk
-    UC09 --- PickupClerk
+    PickupClerk --- UC05
+    PickupClerk --- UC06
+    PickupClerk --- UC09
     UC09 --- WorkshopService
 
     UC04 -. "«extend»<br/>[обрано тег]" .-> UC01
