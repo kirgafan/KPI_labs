@@ -1,0 +1,23 @@
+flowchart TB
+    subgraph boundary ["Прокат Споряджай"]
+        direction TB
+        Customer["Customer<br/>(клієнт)"]
+        Guest["Guest<br/>(гість)"]
+        PickupClerk["PickupClerk<br/>(працівник пункту)"]
+        WorkshopService["WorkshopService<br/>(майстерня)"]
+        UC01(["UC-01: Переглянути каталог"])
+        UC02(["UC-02: Оформити оренду"])
+        UC03(["UC-03: Перевірити доступність"])
+        UC04(["UC-04: Звузити каталог за тегом"])
+        UC05(["UC-05: Видати спорядження"])
+        UC06(["UC-06: Повернути предмет"])
+    end
+
+    Customer -- "узагальнення (is-a)" --> Guest
+    Customer --- UC02
+    Guest --- UC01
+    PickupClerk --- UC05
+    PickupClerk --- UC06
+    UC02 -. "«include»" .-> UC03
+    UC04 -. "«extend»<br/>[обрано тег]" .-> UC01
+    UC06 --- WorkshopService
