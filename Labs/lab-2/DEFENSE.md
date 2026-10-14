@@ -31,4 +31,4 @@
 
 ## Здача
 
-[Вимоги](requirements.md), [діаграма](diagram.png) і [модель](model.mmd). Посилання на GitHub PR з'явиться після публікації гілки lab-2.
+[Вимоги](requirements.md), [діаграма](diagram.png), [модель](model.mmd) і [GitHub PR](https://github.com/kirgafan/KPI_labs/pull/2).
