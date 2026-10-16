@@ -1,0 +1,39 @@
+%%{init: {"theme": "dark", "themeVariables": {"darkMode": true, "background": "#0b1220", "primaryColor": "#1f2020", "primaryTextColor": "#ffffff", "primaryBorderColor": "#6e6e6e", "lineColor": "#d0d0d0", "secondaryColor": "#2c2d2d", "tertiaryColor": "#1f2020", "clusterBkg": "#0b1220", "clusterBorder": "#6e6e6e", "titleColor": "#ffffff", "edgeLabelBackground": "#1f2020", "nodeTextColor": "#ffffff"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 40, "htmlLabels": true, "curve": "basis"}}}%%
+flowchart TB
+    subgraph visitors ["Відвідувачі"]
+        direction LR
+        Customer["Customer<br/>(клієнт)"]
+        Guest["Guest<br/>(гість)"]
+    end
+
+    PickupClerk["PickupClerk<br/>(працівник пункту)"]
+
+    subgraph boundary ["Прокат Споряджай"]
+        direction TB
+        UC01(["UC-01: Переглянути каталог за назвою типу"])
+        UC04(["UC-04: Звузити каталог за тегом"])
+        UC02(["UC-02: Оформити оренду"])
+        UC03(["UC-03: Перевірити доступність предмета"])
+        UC08(["UC-08: Переглянути свою оренду"])
+        UC05(["UC-05: Видати спорядження"])
+        UC06(["UC-06: Повернути один предмет"])
+        UC07(["UC-07: Закрити оренду"])
+        UC09(["UC-09: Передати предмет у майстерню"])
+    end
+
+    subgraph external ["Зовнішня система"]
+        WorkshopService["WorkshopService<br/>(зовнішня система)"]
+    end
+
+    Customer -- "узагальнення (is-a)" --> Guest
+    Guest --- UC01
+    Customer --- UC02
+    Customer --- UC08
+    PickupClerk --- UC05
+    PickupClerk --- UC06
+    PickupClerk --- UC09
+    UC09 --- WorkshopService
+
+    UC04 -. "«extend»<br/>[обрано тег]" .-> UC01
+    UC02 -. "«include»" .-> UC03
+    UC07 -. "«extend»<br/>[усі позиції повернені]" .-> UC06
