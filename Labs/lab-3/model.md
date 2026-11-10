@@ -12,6 +12,8 @@ UC-02 «Оформити оренду» включає UC-03 «Перевіри�
 
 На діаграмах `authorizeAndValidate` охоплює сесію та перевірку форми. `booking` містить серверний ID клієнта й перевірені дані оренди. Смуга активації сховища відповідає одному виклику, а `tx` тримає блокування до завершення транзакції.
 
+`tryInsertRentalAndLines` записує `Rental` і по одній `RentalLine` на предмет у тому самому `tx`. За помилки запис зупиняється, після чого транзакція відкочується. Гілки `alt` показують результат запису й відповідь клієнту.
+
 ## Сценарій 2. Бронювання вільного спальника записує погоджену ціну
 
 REQ-03. Олена Коваль бронює `SLP-01` у пункті «Поділ». Сховище записує `reserved` для броні й ціну 80.00 для її позиції.
@@ -52,27 +54,37 @@ sequenceDiagram
     Note over S: SLP-01, тариф 80.00
     S->>S: compareRates(expectedRates,<br/>catalogRates)
     alt Тарифи збігаються
-        S->>S: tryInsertRental(tx,<br/>booking, reserved)
-        opt Rental записано
-            S->>S: tryInsertLines(tx,<br/>rentalId, agreedRates)
-        end
-        opt Усі записи готові
+        S->>S: tryInsertRentalAndLines(tx,<br/>booking, agreedRates)
+        Note over S: Rental у стані reserved<br/>і всі RentalLine з agreedRates
+        alt Усі записи готові
             S->>S: commit(tx)
+        else Збій запису
+            S->>S: setBookingFailed()
+        end
+        alt Підтверджено збій до фіксації
+            S->>S: rollback(tx)
+        else Результат commit невідомий
+            S->>S: resolveCommit(rentalId,<br/>booking.customerId)
+        else Фіксацію підтверджено
+            S->>S: setConfirmed(rentalId, reserved)
         end
     else Тариф змінився
+        S->>S: rollback(tx)
         S->>S: setPriceChanged()
     end
-    opt Відмова або підтверджений збій
-        S->>S: rollback(tx)
-    end
-    opt Результат commit невідомий
-        S->>S: resolveCommit(rentalId,<br/>booking.customerId)
-    end
-    S-->>R: confirmed(rentalId, reserved)<br/>або PRICE_CHANGED<br/>або BOOKING_FAILED / BOOKING_PENDING
+    S-->>R: bookingResult
     deactivate S
     R-->>U: bookingResult
     deactivate R
-    U-->>C: showBookingResult()
+    alt Бронь зафіксовано
+        U-->>C: showConfirmed(<br/>rentalId, reserved)
+    else Тариф змінився
+        U-->>C: requestPriceConfirmation(<br/>PRICE_CHANGED)
+    else Підтверджено збій
+        U-->>C: showBookingFailed(<br/>BOOKING_FAILED)
+    else Результат ще уточнюється
+        U-->>C: showPending(<br/>BOOKING_PENDING, rentalId)
+    end
     deactivate U
 ```
 
@@ -107,8 +119,8 @@ sequenceDiagram
     activate S
     S-->>A: предмет у клієнта<br/>active, due_at минув<br/>returned_at = null
     deactivate S
-    opt Відкрита active прострочена
-        A->>A: markUnavailable(overdueRental)
+    loop Вибрані предмети
+        A->>A: evaluateItem(TENT-01,<br/>pointId, dates)
     end
     A-->>R: unavailable(overdueRental)
     deactivate A
@@ -153,8 +165,8 @@ sequenceDiagram
     activate S
     S-->>A: status = maintenance
     deactivate S
-    opt status відрізняється від ready
-        A->>A: markUnavailable(notReady)
+    loop Вибрані предмети
+        A->>A: evaluateItem(TENT-02,<br/>pointId, dates)
     end
     A-->>R: unavailable(notReady)
     deactivate A
@@ -211,27 +223,37 @@ sequenceDiagram
     Note over S: TENT-01, тариф 200.00
     S->>S: compareRates(expectedRates,<br/>catalogRates)
     alt Тарифи збігаються
-        S->>S: tryInsertRental(tx,<br/>booking, reserved)
-        opt Rental записано
-            S->>S: tryInsertLines(tx,<br/>rentalId, agreedRates)
-        end
-        opt Усі записи готові
+        S->>S: tryInsertRentalAndLines(tx,<br/>booking, agreedRates)
+        Note over S: Rental у стані reserved<br/>і всі RentalLine з agreedRates
+        alt Усі записи готові
             S->>S: commit(tx)
+        else Збій запису
+            S->>S: setBookingFailed()
+        end
+        alt Підтверджено збій до фіксації
+            S->>S: rollback(tx)
+        else Результат commit невідомий
+            S->>S: resolveCommit(rentalId,<br/>booking.customerId)
+        else Фіксацію підтверджено
+            S->>S: setConfirmed(rentalId, reserved)
         end
     else Тариф змінився
+        S->>S: rollback(tx)
         S->>S: setPriceChanged()
     end
-    opt Відмова або підтверджений збій
-        S->>S: rollback(tx)
-    end
-    opt Результат commit невідомий
-        S->>S: resolveCommit(rentalId,<br/>booking.customerId)
-    end
-    S-->>R: confirmed(rentalId, reserved)<br/>або PRICE_CHANGED<br/>або BOOKING_FAILED / BOOKING_PENDING
+    S-->>R: bookingResult
     deactivate S
     R-->>U: bookingResult
     deactivate R
-    U-->>C: showBookingResult()
+    alt Бронь зафіксовано
+        U-->>C: showConfirmed(<br/>rentalId, reserved)
+    else Тариф змінився
+        U-->>C: requestPriceConfirmation(<br/>PRICE_CHANGED)
+    else Підтверджено збій
+        U-->>C: showBookingFailed(<br/>BOOKING_FAILED)
+    else Результат ще уточнюється
+        U-->>C: showPending(<br/>BOOKING_PENDING, rentalId)
+    end
     deactivate U
 ```
 
@@ -254,9 +276,7 @@ sequenceDiagram
         R->>R: authorizeAndValidate(session,<br/>request)
         R->>A: validateInterval(dates)
         activate A
-        opt due_at ≤ starts_at
-            A->>A: setInvalidInterval()
-        end
+        A->>A: setInvalidInterval()
         A-->>R: invalidInterval
         deactivate A
         R-->>U: rejected(<br/>INVALID_INTERVAL)
@@ -306,12 +326,10 @@ sequenceDiagram
     end
     A-->>R: unavailable(TENT-01,<br/>overlappingRental)
     deactivate A
-    opt Предмет недоступний
-        R->>S: rollback(tx)
-        activate S
-        S-->>R: rolledBack
-        deactivate S
-    end
+    R->>S: rollback(tx)
+    activate S
+    S-->>R: rolledBack
+    deactivate S
     R-->>U: rejected(<br/>ITEM_UNAVAILABLE)
     deactivate R
     U-->>C: showUnavailable(<br/>ITEM_UNAVAILABLE)
