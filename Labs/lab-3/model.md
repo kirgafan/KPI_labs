@@ -2,9 +2,9 @@
 
 UC-02 «Оформити оренду» включає UC-03 «Перевірити доступність предмета». Номери і назви нижче взято з [Gherkin](../lab-2/requirements.md#3-сценарії-gherkin) та [матриці](../lab-2/requirements.md#4-матриця-трасування).
 
-Форма передає `customerId` з автентифікованого контексту. Сервіс оренди керує запитом, а сервіс доступності виконує UC-03 у два кроки: `validateInterval` та `checkItems` для валідних дат. Сховище на початку транзакції блокує рядки `EquipmentItem` за порядком ID, а перевірка читає актуальні дані після блокування. Активація сховища позначає виконання окремого виклику. Транзакція `tx` і блокування тривають до `commit` або `rollback`.
+У `request` форма передає `customerId` з автентифікованого контексту, обраний `pointId`, `itemIds`, `starts_at` і `due_at`. Сервіс оренди керує запитом. UC-03 починається з `validateInterval`. Для валідних дат сервіс доступності виконує `checkItems`. Сховище на початку транзакції блокує рядки `EquipmentItem` за порядком ID, а перевірка читає актуальні дані після блокування. Активація сховища позначає виконання окремого виклику. Транзакція `tx` і блокування тривають до `commit` або `rollback`.
 
-Відкрита позиція має `returned_at = null`. Доступність залежить від `EquipmentItem.status` і відкритих позицій `reserved` та `active`. Інтервали мають вигляд `[starts_at, due_at)`: спільна межа не створює перетину. Прострочена відкрита `active` займає предмет навіть за межами свого інтервалу.
+Відкрита позиція має `returned_at = null`. Доступність залежить від `EquipmentItem.status` і відкритих позицій `reserved` та `active`. Інтервали мають вигляд `[starts_at, due_at)`, тож спільна межа не створює перетину. Прострочена відкрита `active` займає предмет навіть за межами свого інтервалу.
 
 ## Сценарій 2. Бронювання вільного спальника записує погоджену ціну
 
@@ -18,11 +18,11 @@ sequenceDiagram
     participant A as AvailabilityService
     participant S as Сховище
     Note over C,U: Олена Коваль, SLP-01, Поділ<br/>2026-10-23 до 2026-10-25
-    C->>U: confirmRental(itemCodes, pointId, dates)
+    C->>U: confirmRental()
     activate U
-    U->>R: submitRental(customerId, pointId, itemIds, dates)
+    U->>R: submitRental(request)
     activate R
-    R->>A: validateInterval(starts_at, due_at)
+    R->>A: validateInterval(dates)
     activate A
     A-->>R: validInterval
     deactivate A
@@ -30,31 +30,31 @@ sequenceDiagram
     activate S
     S-->>R: tx, предмети заблоковано
     deactivate S
-    R->>A: checkItems(tx, itemIds, dates)
+    R->>A: checkItems(tx, itemIds,<br/>dates)
     activate A
-    A->>S: loadAvailability(tx, itemIds)
+    A->>S: loadAvailability(tx,<br/>itemIds)
     activate S
-    S-->>A: ready, відкритих позицій немає<br/>EquipmentType.daily_rate = 80.00
+    S-->>A: ready, позицій немає<br/>daily_rate = 80.00
     deactivate S
     A->>A: evaluateItem(SLP-01, dates)
     A-->>R: available(SLP-01, 80.00)
     deactivate A
-    R->>S: createReservation(tx, customerId, pointId, dates, itemsWithRates)
+    R->>S: createReservation(tx,<br/>request, itemsWithRates)
     activate S
-    S->>S: tryInsertRental(customer_id, pickup_point_id,<br/>starts_at, due_at, status = reserved)
-    opt Rental отримав id
-        S->>S: tryInsertLines(rental_id, equipment_item_id,<br/>daily_rate_at_booking, returned_at = null)
+    S->>S: tryInsertRental(request,<br/>reserved)
+    opt Є ID оренди
+        S->>S: tryInsertLines(rentalId,<br/>itemsWithRates)
     end
-    alt Rental і всі позиції записано
+    alt Записано все
         S->>S: commit(tx)
-    else Збій запису до commit
+    else Збій запису
         S->>S: rollback(tx)
     end
-    S-->>R: confirmed(rentalId, reserved) або BOOKING_FAILED
+    S-->>R: confirmed(rentalId, reserved)<br/>або BOOKING_FAILED
     deactivate S
     R-->>U: bookingResult
     deactivate R
-    U-->>C: showBookingResult(bookingResult)
+    U-->>C: showBookingResult()
     deactivate U
 ```
 
@@ -70,11 +70,11 @@ sequenceDiagram
     participant A as AvailabilityService
     participant S as Сховище
     Note over C,U: TENT-01<br/>2026-10-26 до 2026-10-28
-    C->>U: confirmRental(itemCodes, pointId, dates)
+    C->>U: confirmRental()
     activate U
-    U->>R: submitRental(customerId, pointId, itemIds, dates)
+    U->>R: submitRental(request)
     activate R
-    R->>A: validateInterval(starts_at, due_at)
+    R->>A: validateInterval(dates)
     activate A
     A-->>R: validInterval
     deactivate A
@@ -82,14 +82,14 @@ sequenceDiagram
     activate S
     S-->>R: tx, предмети заблоковано
     deactivate S
-    R->>A: checkItems(tx, itemIds, dates)
+    R->>A: checkItems(tx, itemIds,<br/>dates)
     activate A
-    A->>S: loadAvailability(tx, itemIds)
+    A->>S: loadAvailability(tx,<br/>itemIds)
     activate S
-    S-->>A: відкрита позиція active<br/>due_at минув, returned_at = null
+    S-->>A: active, due_at минув<br/>returned_at = null
     deactivate S
-    opt active, due_at минув і returned_at порожній
-        A->>A: markUnavailable(TENT-01, overdueRental)
+    opt Відкрита active прострочена
+        A->>A: markUnavailable(overdueRental)
     end
     A-->>R: unavailable(overdueRental)
     deactivate A
@@ -97,9 +97,9 @@ sequenceDiagram
     activate S
     S-->>R: rolledBack
     deactivate S
-    R-->>U: rejected(ITEM_UNAVAILABLE)
+    R-->>U: rejected(<br/>ITEM_UNAVAILABLE)
     deactivate R
-    U-->>C: showUnavailable(ITEM_UNAVAILABLE)
+    U-->>C: showUnavailable(<br/>ITEM_UNAVAILABLE)
     deactivate U
 ```
 
@@ -115,11 +115,11 @@ sequenceDiagram
     participant A as AvailabilityService
     participant S as Сховище
     Note over C,U: TENT-02<br/>2026-10-23 до 2026-10-25
-    C->>U: confirmRental(itemCodes, pointId, dates)
+    C->>U: confirmRental()
     activate U
-    U->>R: submitRental(customerId, pointId, itemIds, dates)
+    U->>R: submitRental(request)
     activate R
-    R->>A: validateInterval(starts_at, due_at)
+    R->>A: validateInterval(dates)
     activate A
     A-->>R: validInterval
     deactivate A
@@ -127,14 +127,14 @@ sequenceDiagram
     activate S
     S-->>R: tx, предмети заблоковано
     deactivate S
-    R->>A: checkItems(tx, itemIds, dates)
+    R->>A: checkItems(tx, itemIds,<br/>dates)
     activate A
-    A->>S: loadAvailability(tx, itemIds)
+    A->>S: loadAvailability(tx,<br/>itemIds)
     activate S
-    S-->>A: EquipmentItem.status = maintenance
+    S-->>A: status = maintenance
     deactivate S
     opt status відрізняється від ready
-        A->>A: markUnavailable(TENT-02, notReady)
+        A->>A: markUnavailable(notReady)
     end
     A-->>R: unavailable(notReady)
     deactivate A
@@ -142,9 +142,9 @@ sequenceDiagram
     activate S
     S-->>R: rolledBack
     deactivate S
-    R-->>U: rejected(ITEM_UNAVAILABLE)
+    R-->>U: rejected(<br/>ITEM_UNAVAILABLE)
     deactivate R
-    U-->>C: showUnavailable(ITEM_UNAVAILABLE)
+    U-->>C: showUnavailable(<br/>ITEM_UNAVAILABLE)
     deactivate U
 ```
 
@@ -160,11 +160,11 @@ sequenceDiagram
     participant A as AvailabilityService
     participant S as Сховище
     Note over C,U: TENT-01<br/>2026-10-20 до 2026-10-22
-    C->>U: confirmRental(itemCodes, pointId, dates)
+    C->>U: confirmRental()
     activate U
-    U->>R: submitRental(customerId, pointId, itemIds, dates)
+    U->>R: submitRental(request)
     activate R
-    R->>A: validateInterval(starts_at, due_at)
+    R->>A: validateInterval(dates)
     activate A
     A-->>R: validInterval
     deactivate A
@@ -172,34 +172,34 @@ sequenceDiagram
     activate S
     S-->>R: tx, предмети заблоковано
     deactivate S
-    R->>A: checkItems(tx, itemIds, dates)
+    R->>A: checkItems(tx, itemIds,<br/>dates)
     activate A
-    A->>S: loadAvailability(tx, itemIds)
+    A->>S: loadAvailability(tx,<br/>itemIds)
     activate S
-    S-->>A: ready, відкрита позиція reserved<br/>2026-12-01 до 2026-12-05, daily_rate = 200.00
+    S-->>A: ready, reserved<br/>2026-12-01 до 2026-12-05<br/>daily_rate = 200.00
     deactivate S
-    loop Кожна відкрита позиція TENT-01
-        A->>A: checkOverlapAndOverdue(line, dates)
-        Note right of A: Напіввідкриті інтервали не перетинаються<br/>Позиція reserved, прострочення active відсутнє
+    loop Відкриті позиції TENT-01
+        A->>A: evaluateLine(line, dates)
+        Note right of A: Дати не перетинаються<br/>Позиція reserved
     end
     A-->>R: available(TENT-01, 200.00)
     deactivate A
-    R->>S: createReservation(tx, customerId, pointId, dates, itemsWithRates)
+    R->>S: createReservation(tx,<br/>request, itemsWithRates)
     activate S
-    S->>S: tryInsertRental(customer_id, pickup_point_id,<br/>starts_at, due_at, status = reserved)
-    opt Rental отримав id
-        S->>S: tryInsertLines(rental_id, equipment_item_id,<br/>daily_rate_at_booking, returned_at = null)
+    S->>S: tryInsertRental(request,<br/>reserved)
+    opt Є ID оренди
+        S->>S: tryInsertLines(rentalId,<br/>itemsWithRates)
     end
-    alt Rental і всі позиції записано
+    alt Записано все
         S->>S: commit(tx)
-    else Збій запису до commit
+    else Збій запису
         S->>S: rollback(tx)
     end
-    S-->>R: confirmed(rentalId, reserved) або BOOKING_FAILED
+    S-->>R: confirmed(rentalId, reserved)<br/>або BOOKING_FAILED
     deactivate S
     R-->>U: bookingResult
     deactivate R
-    U-->>C: showBookingResult(bookingResult)
+    U-->>C: showBookingResult()
     deactivate U
 ```
 
@@ -214,19 +214,19 @@ sequenceDiagram
     participant R as RentalService
     participant A as AvailabilityService
     loop Дві незалежні спроби зі сценарію 10
-        Note over C,U: SLP-01, спроба 1: 2026-10-25 до 2026-10-23<br/>SLP-01, спроба 2: 2026-10-25 до 2026-10-25
-        C->>U: confirmRental(itemCodes, pointId, dates)
+        Note over C,U: SLP-01<br/>1. 2026-10-25 до 2026-10-23<br/>2. 2026-10-25 до 2026-10-25
+        C->>U: confirmRental()
         activate U
-        U->>R: submitRental(customerId, pointId, itemIds, dates)
+        U->>R: submitRental(request)
         activate R
-        R->>A: validateInterval(starts_at, due_at)
+        R->>A: validateInterval(dates)
         activate A
-        opt due_at не пізніше starts_at
+        opt due_at ≤ starts_at
             A->>A: setInvalidInterval()
         end
         A-->>R: invalidInterval
         deactivate A
-        R-->>U: rejected(INVALID_INTERVAL)
+        R-->>U: rejected(<br/>INVALID_INTERVAL)
         deactivate R
         U-->>C: showInvalidDates()
         deactivate U
@@ -245,11 +245,11 @@ sequenceDiagram
     participant A as AvailabilityService
     participant S as Сховище
     Note over C,U: TENT-01 і SLP-01<br/>2026-12-02 до 2026-12-04
-    C->>U: confirmRental(itemCodes, pointId, dates)
+    C->>U: confirmRental()
     activate U
-    U->>R: submitRental(customerId, pointId, itemIds, dates)
+    U->>R: submitRental(request)
     activate R
-    R->>A: validateInterval(starts_at, due_at)
+    R->>A: validateInterval(dates)
     activate A
     A-->>R: validInterval
     deactivate A
@@ -257,11 +257,11 @@ sequenceDiagram
     activate S
     S-->>R: tx, предмети заблоковано
     deactivate S
-    R->>A: checkItems(tx, itemIds, dates)
+    R->>A: checkItems(tx, itemIds,<br/>dates)
     activate A
-    A->>S: loadAvailability(tx, itemIds)
+    A->>S: loadAvailability(tx,<br/>itemIds)
     activate S
-    S-->>A: обидва ready, відкрита позиція TENT-01<br/>reserved з 2026-12-01 до 2026-12-05
+    S-->>A: обидва ready, TENT-01 reserved<br/>2026-12-01 до 2026-12-05
     deactivate S
     par Оцінка TENT-01
         A->>A: evaluateItem(TENT-01, dates)
@@ -270,17 +270,17 @@ sequenceDiagram
         A->>A: evaluateItem(SLP-01, dates)
         Note right of A: Предмет вільний
     end
-    A-->>R: unavailable(TENT-01, overlappingRental)
+    A-->>R: unavailable(TENT-01,<br/>overlappingRental)
     deactivate A
-    opt Хоча б один предмет недоступний
+    opt Предмет недоступний
         R->>S: rollback(tx)
         activate S
         S-->>R: rolledBack
         deactivate S
     end
-    R-->>U: rejected(ITEM_UNAVAILABLE)
+    R-->>U: rejected(<br/>ITEM_UNAVAILABLE)
     deactivate R
-    U-->>C: showUnavailable(ITEM_UNAVAILABLE)
+    U-->>C: showUnavailable(<br/>ITEM_UNAVAILABLE)
     deactivate U
 ```
 
