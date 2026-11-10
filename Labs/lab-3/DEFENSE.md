@@ -28,4 +28,4 @@
 
 ## Здача
 
-[Рендер сценарію 2](diagram.png)
+[GitHub PR №3](https://github.com/kirgafan/KPI_labs/pull/3) · [Рендер сценарію 2](diagram.png)
