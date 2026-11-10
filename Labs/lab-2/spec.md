@@ -48,3 +48,4 @@
 - C5: 7 сутностей, 28 атрибутів, зв'язки R1-R6. Email лише в Customer. Погоджена ціна лише в RentalLine.daily_rate_at_booking. cancelled лише в REQ-13.
 - C6: due_at пізніше за starts_at, інакше окрема відмова. Зміна каталогової ціни не змінює daily_rate_at_booking. maintenance і retired не видають. closed після всіх повернень.
 - C7: model.mmd - Mermaid flowchart, diagram.png зібрано з нього. Є промпти й ADR.
+- C8. Кожна нефункціональна вимога має зв'язок із прецедентом і критерій перевірки. [Нефункціональні вимоги](requirements.md#6-нефункціональні-вимоги)
